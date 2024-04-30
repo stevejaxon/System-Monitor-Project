@@ -2,26 +2,34 @@
 #define SYSTEM_H
 
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "process.h"
 #include "processor.h"
+
+using namespace std;
+
+// Forward declare the Process class to avoid dependency issues.
+class Process;
 
 class System {
  public:
-  Processor& Cpu();                   // TODO: See src/system.cpp
-  std::vector<Process>& Processes();  // TODO: See src/system.cpp
-  float MemoryUtilization();          // TODO: See src/system.cpp
-  long UpTime();                      // TODO: See src/system.cpp
-  int TotalProcesses();               // TODO: See src/system.cpp
-  int RunningProcesses();             // TODO: See src/system.cpp
-  std::string Kernel();               // TODO: See src/system.cpp
-  std::string OperatingSystem();      // TODO: See src/system.cpp
+  System(Processor cpu) : cpu_(std::move(cpu)) {}
+  virtual Processor& Cpu() = 0;
+  virtual vector<Process>& Processes() = 0;
+  virtual float MemoryUtilization() = 0;
+  virtual long UpTime() = 0;
+  virtual int TotalProcesses() = 0;
+  virtual int RunningProcesses() = 0;
+  virtual string Kernel() = 0;
+  virtual string OperatingSystem() = 0;
 
-  // TODO: Define any necessary private members
- private:
-  Processor cpu_ = {};
-  std::vector<Process> processes_ = {};
+ protected:
+  Processor cpu_;
+  vector<Process> processes_ = {};
+
+  string osName_{""};
+  string kernelName_{""};
 };
 
 #endif
