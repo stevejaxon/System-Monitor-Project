@@ -41,8 +41,8 @@ Value FindValue(const std::filesystem::path &filePath, const Key &key) {
         return currentValue;
       }
     }
+    stream.close();
   }
-  stream.close();
   return currentValue;
 }
 
@@ -53,10 +53,9 @@ vector<string> LinuxParser::Stats(const std::filesystem::path &filePath) {
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    tokens.assign(std::istream_iterator<string>(linestream),
-                  std::istream_iterator<string>());
+    tokens.assign(std::istream_iterator<string>(linestream), std::istream_iterator<string>());
+    stream.close();
   }
-  stream.close();
   return tokens;
 }
 
@@ -80,8 +79,8 @@ string LinuxParser::OperatingSystem(const std::filesystem::path &filePath) {
         }
       }
     }
+    filestream.close();
   }
-  filestream.close();
   return value;
 }
 
@@ -94,28 +93,24 @@ string LinuxParser::Kernel(const std::filesystem::path &filePath) {
     std::getline(stream, line);
     std::istringstream linestream(line);
     linestream >> os >> version >> kernel;
+    stream.close();
   }
-  stream.close();
   return kernel;
 }
 
-// BONUS: Update this to use std::filesystem
 vector<int> LinuxParser::Pids(const std::string &dirPath) {
   vector<int> pids;
-  DIR *directory = opendir(dirPath.c_str());
-  struct dirent *file;
-  while ((file = readdir(directory)) != nullptr) {
-    // Is this a directory?
-    if (file->d_type == DT_DIR) {
+  const std::filesystem::path directory{dirPath};
+  for (auto const& dir_entry : std::filesystem::directory_iterator{directory}) {
+    if (dir_entry.is_directory()) {
       // Is every character of the name a digit?
-      string filename(file->d_name);
+      string filename(dir_entry.path().filename());
       if (std::all_of(filename.begin(), filename.end(), isdigit)) {
         int pid = stoi(filename);
         pids.push_back(pid);
       }
     }
   }
-  closedir(directory);
   return pids;
 }
 
@@ -133,8 +128,8 @@ float LinuxParser::MemoryUtilization(const std::filesystem::path &filePath) {
         memFree = value;
       }
     }
+    stream.close();
   }
-  stream.close();
   // The output, display expects the utilization percentage to not be multiplied
   // by 100 e.g. 0.041 instead of 4.1.
   return (memTotal - memFree) / memTotal;
@@ -148,8 +143,8 @@ long LinuxParser::UpTime(const std::filesystem::path &filePath) {
     std::getline(stream, line);
     std::istringstream linestream(line);
     linestream >> upTime;
+    stream.close();
   }
-  stream.close();
   return upTime;
 }
 
@@ -203,10 +198,10 @@ string LinuxParser::Command(const std::filesystem::path &filePathRoot,
   std::ifstream stream(filePath);
   if (stream.is_open()) {
     std::getline(stream, line);
+    stream.close();
+    // Handles the situation where some commandlines contain null characters.
+    std::replace(line.begin(), line.end(), '\0', ' ');
   }
-  stream.close();
-  // Handles the situation where some commandlines contain null characters.
-  std::replace(line.begin(), line.end(), '\0', ' ');
   return line;
 }
 
@@ -227,8 +222,8 @@ string LinuxParser::Ram(const std::filesystem::path &filePathRoot, int pid) {
         return SystemMemory::Utilization(unit, amount).ToMbString();
       }
     }
+    stream.close();
   }
-  stream.close();
   return "0";
 }
 
@@ -244,9 +239,9 @@ string LinuxParser::User(int pid [[maybe_unused]]) { return string(); }
 // NOTE: Provided function not required in this implementation
 long LinuxParser::UpTime(int pid [[maybe_unused]]) { return 0; }
 
-std::unordered_map<string, string> &LinuxParser::UserIdMap(
+std::unordered_map<string, string> LinuxParser::UserIdMap(
     const std::filesystem::path &filePath) {
-  static std::unordered_map<string, string> uid_map;
+  std::unordered_map<string, string> uid_map;
 
   string line, datum, userName;
   std::ifstream stream(filePath);
@@ -263,7 +258,7 @@ std::unordered_map<string, string> &LinuxParser::UserIdMap(
       // The third portion of the line is the user's ID.
       uid_map[datum] = userName;
     }
+    stream.close();
   }
-  stream.close();
   return uid_map;
 }
